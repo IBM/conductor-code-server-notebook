@@ -1,6 +1,6 @@
 # Code-server integration with Conductor as a notebook
 
-Project to integrate code-server for xLinux as a notebook in IBM Spectrum Conductor.
+Project to integrate [code-server](https://github.com/cdr/code-server) for xLinux as a notebook in IBM Spectrum Conductor.
 
 ### Using:
 Run the build_package.sh script to build the Conductor-Code-Server notebook package.
