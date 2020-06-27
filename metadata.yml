@@ -1,0 +1,25 @@
+anacondarequired: false
+controlwaitperiod: null
+datavolumes: null
+defaultbaseport: null
+dependencies: null
+dockercmd: null
+dockerimagename: null
+dockerize: false
+env: null
+id:
+  uuid: codeserver-3.4.1
+impersonationsupported: true
+jobmonitormaxupdateinterval: 280
+memlimit: null
+monitoringEnabled: false
+name: codeserver
+readycheckscript: null
+samples: null
+sharingenabled: false
+sslsupported: false
+precmd: ./scripts/prestart_nb.sh
+startcmd: ./scripts/start_nb.sh
+stopcmd: ./scripts/stop_nb.sh
+jobmonitor: ./scripts/jobMonitor.sh
+version: 3.4.1
