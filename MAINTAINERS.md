@@ -1,3 +1,3 @@
 # MAINTAINERS
 
-Christopher Ferris - chrisfer@us.ibm.com
+Kevin Doyle - kjdoyle@ca.ibm.com
