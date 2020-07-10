@@ -14,7 +14,6 @@ source ./scripts/common.inc
         8 - Failed to touch file
         9 - Directory is not defined
         10 - Directory already exists
-        11 - Failed to setfacl
 '
 
 declare -r INSTALLDIR="$NOTEBOOK_DEPLOY_DIR/install"
@@ -87,7 +86,7 @@ make_directory_with_multilevel_permission() {
                     exit 1
                 fi
                 if [ "${partialpath%/}" == "${path%/}" ]; then
-                    :
+                    chmod $destperm "$partialpath"
                 else
                     chmod $interperm "$partialpath"
                 fi
@@ -159,46 +158,6 @@ remove_files() {
 	fi
 }
 
-setfacl_user_command() {
-    # $1 Username
-    # $2 Permission string (i.e. "rwx")
-    # $3 Path
-    # $4 Optional Flags
-
-    local username="$1"
-    local permission="$2"
-    local path="$3"
-    local flags="$4"
-
-    setfacl $flags u:$username:$permission $path
-
-    local rc="$?"
-    if [ "$rc" -ne 0 ]; then
-        #Don't fail outright, since we know setfacl does not work on NFS.
-        #Check if the user exists
-        if [ -z `id -u $username 2>/dev/null` ]; then
-            echo "Failed to setfacl for $path. The user $username does not exist."
-            exit 11
-        fi
-    fi
-}
-
-setfacl_mask_command() {
-        # $1 Permission string (i.e. "rwx")
-        # $2 Path
-        # $3 Optional Flags
-
-        local permission="$1"
-        local path="$2"
-        local flags="$3"
-
-        setfacl $flags m:$permission $path
-
-        local rc="$?"
-        if [ "$rc" -ne 0 ]; then
-        	echo "Failed to setfacl mask for $path."
-        fi
-}
 ##########################
 ### Functional Methods ###
 ##########################
@@ -246,9 +205,6 @@ create_notebook_deploy_dir() {
         make_directory_with_multilevel_permission $NOTEBOOK_DEPLOY_DIR 775 775
         touch_file $NOTEBOOK_DEPLOY_DIR/$CREATED_BY_CONDUCTOR_FOR_SPARK_FILE
         chmod g+rwxs $NOTEBOOK_DEPLOY_DIR
-        if [ -n "$NOTEBOOK_CONSUMER_EXEC_USER" ]; then
-            setfacl_user_command $NOTEBOOK_CONSUMER_EXEC_USER "rwx" $NOTEBOOK_DEPLOY_DIR "-m"
-        fi
     else
     	if [ -z "$NOTEBOOK_UPDATE_PACKAGE" ]; then
 	    	if [ -n "$NOTEBOOK_UPDATE_PARAMETER" ]; then
@@ -256,10 +212,7 @@ create_notebook_deploy_dir() {
 	    			#The existing directory belongs to this Spark instance group, safe to reuse
 					remove_files $NOTEBOOK_DEPLOY_DIR/$CREATED_BY_CONDUCTOR_FOR_SPARK_FILE
 					touch_file $NOTEBOOK_DEPLOY_DIR/$CREATED_BY_CONDUCTOR_FOR_SPARK_FILE
-					if [ -n "$NOTEBOOK_CONSUMER_EXEC_USER" ]; then
-            			setfacl_user_command $NOTEBOOK_CONSUMER_EXEC_USER "rwx" $NOTEBOOK_DEPLOY_DIR "-m"
-        			fi
-                                chmod u+rwx,g+rwxs,o=rx $NOTEBOOK_DEPLOY_DIR
+                    chmod u+rwx,g+rwxs,o=rx $NOTEBOOK_DEPLOY_DIR
 				else
 					#Do not re-use existing directory
 			    	echo "The deployment directory \"${NOTEBOOK_DEPLOY_DIR}\" already exists."
@@ -304,22 +257,6 @@ create_notebook_base_dir() {
         touch_file ${CODESERVER_DATA_DIR}/temp.txt
         rm -f ${CODESERVER_DATA_DIR}/temp.txt
     fi
-
-    setfacl_user_command $IBM_PLATFORM_DEPLOY_HOOK_EXEC_USER "rwx" $NOTEBOOK_DATA_BASE_DIR "-d -m"
-
-    if [ -n "$NOTEBOOK_CONSUMER_EXEC_USER" ]; then
-        setfacl_user_command $NOTEBOOK_CONSUMER_EXEC_USER "rwx" $NOTEBOOK_DATA_BASE_DIR "-m"
-    else
-        setfacl_user_command $IBM_PLATFORM_DEPLOY_HOOK_EXEC_USER "rwx" $NOTEBOOK_DATA_BASE_DIR "-m"
-    fi
-
-    setfacl_user_command $IBM_PLATFORM_DEPLOY_HOOK_EXEC_USER "rwx" $RSTUDIO_DATA_DIR "-d -m"
-
-    if [ -n "$NOTEBOOK_CONSUMER_EXEC_USER" ]; then
-        setfacl_user_command $NOTEBOOK_CONSUMER_EXEC_USER "rwx" $RSTUDIO_DATA_DIR "-m"
-    else
-        setfacl_user_command $IBM_PLATFORM_DEPLOY_HOOK_EXEC_USER "rwx" $RSTUDIO_DATA_DIR "-m"
-    fi
 }
 
 copy_scripts_dir () {
@@ -341,12 +278,6 @@ create_service_logs_dir() {
         chmod +t $NOTEBOOK_SERVICELOGS_DIR
     else
         chmod u+rwx,g+rwxs,o+rwxt $NOTEBOOK_SERVICELOGS_DIR
-    fi
-    setfacl_user_command $IBM_PLATFORM_DEPLOY_HOOK_EXEC_USER "rwx" $NOTEBOOK_SERVICELOGS_DIR "-d -m"
-    if [ -n "$NOTEBOOK_CONSUMER_EXEC_USER" ]; then
-        setfacl_user_command $NOTEBOOK_CONSUMER_EXEC_USER "rwx" $NOTEBOOK_SERVICELOGS_DIR "-m"
-    else
-        setfacl_user_command $IBM_PLATFORM_DEPLOY_HOOK_EXEC_USER "rwx" $NOTEBOOK_SERVICELOGS_DIR "-m"
     fi
 }
 
